@@ -42,6 +42,24 @@ const suiClient = {
   },
 }
 const state = computed(() => new URLSearchParams(location.search).get('state'))
+const never = <T,>() => new Promise<T>(() => {})
+// The other states: the same checkout with a fake that stops (or answers) at the step the state shows.
+const STATES = ['loading', 'quoting', 'signing', 'confirming', 'rejected', 'unapplied', 'error', 'expired'] as const
+const staged = computed(() => (STATES as readonly string[]).includes(state.value ?? '') ? state.value : null)
+const stagedClient = computed((): SessionClient => {
+  const base = fake()
+  switch (staged.value) {
+    case 'loading': return { ...base, getSession: () => never() }
+    case 'error': return { ...base, getSession: async () => { throw new Error('The checkout could not be loaded. Try again later.') } }
+    case 'quoting': return { ...base, requestQuote: () => never() }
+    case 'expired': return { ...base, requestQuote: async () => ({ ...quote(), expiresMs: String(Date.now() + 1500) }) }
+    case 'confirming': return { ...base, submitPayment: async () => 'pending', waitForPayment: async () => 'pending' }
+    case 'rejected': return { ...base, submitPayment: async () => 'rejected' }
+    case 'unapplied': return { ...base, submitPayment: async () => 'unapplied' }
+    default: return base
+  }
+})
+const stagedWallet = computed(() => (staged.value === 'signing' ? () => never<{ digest: string }>() : wallet))
 </script>
 
 <template>
@@ -49,5 +67,6 @@ const state = computed(() => new URLSearchParams(location.search).get('state'))
     <ChainCheckout v-if="!state || state === 'open'" :session-id="SESSION" :client="fake()" :sui-client="suiClient" :sign-and-execute="wallet" />
     <ChainCheckout v-if="state === 'paid'" :session-id="SESSION" :client="fake('paid')" :sui-client="suiClient" :sign-and-execute="wallet" />
     <ChainCheckout v-if="state === 'closed'" :session-id="SESSION" :client="fake('expired')" :sui-client="suiClient" :sign-and-execute="wallet" />
+    <ChainCheckout v-if="staged" :session-id="SESSION" :client="stagedClient" :sui-client="suiClient" :sign-and-execute="stagedWallet" />
   </AppToolShell>
 </template>

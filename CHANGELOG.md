@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.0.2 — 2026-11-17
+
+- A signed payment is kept in `sessionStorage` (this tab, the quote and the digest only) until the service answers. A
+  failed submission is retried 5 times with backoff, a reload resumes it without signing again, and "Check again" is
+  offered while the payment is unconfirmed (FU-0124).
+- The gallery has every state, and the accessibility sweep covers twelve (choose, quoted, paid, closed, loading, error,
+  quoting, expired, signing, confirming, rejected, unapplied), in five browsers (FU-0129).
+
 ## 0.0.1 — 2026-11-17 (first npm release)
 
 After the first pass of the security audit:

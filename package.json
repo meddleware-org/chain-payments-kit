@@ -1,6 +1,6 @@
 {
   "name": "@meddleware/chain-payments-kit",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Vue checkout for Chain Payments: shows the exact price, builds the payment through the chain modules, follows it to confirmation.",
   "license": "0BSD",
   "repository": {

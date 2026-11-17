@@ -124,4 +124,51 @@ describe('ChainCheckout', () => {
     expect(w.text()).toContain('could not be read from the network, so nothing was signed')
     expect(sign).not.toHaveBeenCalled()
   })
+
+  it('retries a failed submission and keeps the payment for a reload', async () => {
+    sessionStorage.clear()
+    let calls = 0
+    const submitPayment = vi.fn(async () => {
+      calls++
+      if (calls < 3) throw new Error('network down')
+      return 'confirmed' as const
+    })
+    const w = mount(ChainCheckout, { props: { sessionId: SESSION, suiClient, client: client({ submitPayment }), signAndExecute: vi.fn(async () => ({ digest: 'D5' })) } })
+    await flushPromises()
+    await w.get('button').trigger('click')
+    await vi.waitFor(() => expect(w.text()).toContain('Pay exactly'), { timeout: 10_000 })
+    await w.get('button').trigger('click')
+    await vi.waitFor(() => expect(w.text()).toContain('Paid. Thank you.'), { timeout: 10_000 })
+    expect(submitPayment).toHaveBeenCalledTimes(3)
+    expect(sessionStorage.getItem(`chain-payments:pending:${SESSION}`)).toBeNull()
+  })
+
+  it('resumes a signed payment after a remount, without signing again', async () => {
+    sessionStorage.clear()
+    sessionStorage.setItem(`chain-payments:pending:${SESSION}`, JSON.stringify({ quote: quote(), digest: 'D6' }))
+    const sign = vi.fn(async () => ({ digest: 'never' }))
+    const submitPayment = vi.fn(async () => 'confirmed' as const)
+    const w = mount(ChainCheckout, { props: { sessionId: SESSION, suiClient, client: client({ submitPayment }), signAndExecute: sign } })
+    await vi.waitFor(() => expect(w.text()).toContain('Paid. Thank you.'), { timeout: 10_000 })
+    expect(submitPayment).toHaveBeenCalledWith(SESSION, quote().nonce, 'D6')
+    expect(sign).not.toHaveBeenCalled()
+    expect(w.emitted('paid')?.[0]?.[0]).toMatchObject({ digest: 'D6' })
+    expect(sessionStorage.getItem(`chain-payments:pending:${SESSION}`)).toBeNull()
+  })
+
+  it('offers Check again while a payment is still unconfirmed', async () => {
+    sessionStorage.clear()
+    const c = client({ submitPayment: vi.fn(async () => 'pending' as const), waitForPayment: vi.fn(async () => 'pending' as const) })
+    const w = mount(ChainCheckout, { props: { sessionId: SESSION, suiClient, client: c, signAndExecute: vi.fn(async () => ({ digest: 'D7' })) } })
+    await flushPromises()
+    await w.get('button').trigger('click')
+    await vi.waitFor(() => expect(w.text()).toContain('Pay exactly'), { timeout: 10_000 })
+    await w.get('button').trigger('click')
+    await vi.waitFor(() => expect(w.text()).toContain('has not confirmed the payment yet'), { timeout: 10_000 })
+    expect(sessionStorage.getItem(`chain-payments:pending:${SESSION}`)).not.toBeNull()
+    c.submitPayment = vi.fn(async () => 'confirmed' as const)
+    await w.get('button').trigger('click')
+    await vi.waitFor(() => expect(w.text()).toContain('Paid. Thank you.'), { timeout: 10_000 })
+  })
 })
+

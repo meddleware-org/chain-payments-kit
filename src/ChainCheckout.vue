@@ -5,7 +5,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { UiButton, UiNotice, UiSegmentedControl } from '@meddleware/ui'
 import { ChainPaymentsError, createSessionClient, loadChain, supported } from '@meddleware/chain-payments-client'
-import type { CheckoutSession, Quote, SessionClient } from '@meddleware/chain-payments-client'
+import type { CheckoutSession, PaymentStatus, Quote, SessionClient } from '@meddleware/chain-payments-client'
 import type { PlatformFee, SuiObjectReader } from '@meddleware/chain-payments-client/sui'
 
 const props = defineProps<{
@@ -36,6 +36,8 @@ const method = ref('')
 const quote = ref<Quote | null>(null)
 const problem = ref('')
 const fee = ref<PlatformFee | null>(null)
+/** The payment being followed (after the wallet signed): kept in this tab until it has an answer. */
+const following = ref<{ quote: Quote; digest: string } | null>(null)
 const now = ref(Date.now())
 const announcement = ref('')
 let timer: ReturnType<typeof setInterval> | undefined
@@ -96,6 +98,12 @@ async function load() {
   step.value = 'loading'
   try {
     session.value = await client.getSession(props.sessionId)
+    // A payment signed in this tab earlier (a reload, a failed submission): follow it to its answer first.
+    const saved = remembered()
+    if (saved) {
+      void follow(saved.quote, saved.digest)
+      return
+    }
     if (session.value.status !== 'open') {
       step.value = session.value.status === 'paid' ? 'paid' : 'closed'
       return
@@ -151,28 +159,87 @@ async function pay() {
     step.value = 'ready'
     return
   }
-  step.value = 'confirming'
-  announcement.value = 'Payment sent. Waiting for the network to confirm it.'
+  remember(q, digest)
+  await follow(q, digest)
+}
+
+// A signed payment is kept in sessionStorage (this tab only) until the service answers, so a failed submission or a
+// reload never leaves a paid transaction unreported. The service also finds such payments from their events (it does not
+// depend on this), but this way the buyer sees the outcome. Nothing here is secret: a quote and a transaction digest.
+const storageKey = () => `chain-payments:pending:${props.sessionId}`
+function remember(q: Quote, digest: string) {
   try {
-    let status = await client.submitPayment(props.sessionId, q.nonce, digest)
-    if (status === 'pending') status = await client.waitForPayment(props.sessionId, digest)
-    if (status === 'confirmed') {
-      step.value = 'paid'
-      announcement.value = 'Payment confirmed.'
-      emit('paid', { digest, quote: q })
-    } else if (status === 'rejected') {
-      step.value = 'rejected'
-      emit('failed', 'rejected')
-    } else if (status === 'unapplied') {
-      step.value = 'unapplied'
-      announcement.value = 'Payment received, but this checkout was already paid or closed.'
-      emit('failed', 'unapplied')
-    } else {
-      problem.value = 'The network has not confirmed the payment yet. It will be checked again; you can close this page.'
-    }
-  } catch (e) {
-    problem.value = message(e)
+    sessionStorage.setItem(storageKey(), JSON.stringify({ quote: q, digest }))
+  } catch {
+    /* storage unavailable: the in-memory follow still runs */
   }
+}
+function forget() {
+  try {
+    sessionStorage.removeItem(storageKey())
+  } catch {
+    /* nothing to forget */
+  }
+}
+function remembered(): { quote: Quote; digest: string } | null {
+  try {
+    const v = JSON.parse(sessionStorage.getItem(storageKey()) ?? 'null')
+    if (v && typeof v.digest === 'string' && v.quote?.session === props.sessionId && typeof v.quote?.nonce === 'string') return v
+  } catch {
+    /* unreadable: ignore */
+  }
+  return null
+}
+
+/** Retries before a failed submission is left to "Check again" (or a reload): 1, 2, 4 and 8 seconds apart. */
+const SUBMIT_ATTEMPTS = 5
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
+
+async function follow(q: Quote, digest: string) {
+  following.value = { quote: q, digest }
+  quote.value = q
+  step.value = 'confirming'
+  problem.value = ''
+  announcement.value = 'Payment sent. Waiting for the network to confirm it.'
+  let status: PaymentStatus | undefined
+  for (let attempt = 1; attempt <= SUBMIT_ATTEMPTS && status === undefined; attempt++) {
+    try {
+      status = await client.submitPayment(props.sessionId, q.nonce, digest)
+    } catch (e) {
+      if (attempt === SUBMIT_ATTEMPTS) {
+        problem.value = `${message(e)} Your payment is saved in this tab: choose Check again, or reload the page later.`
+        return
+      }
+      await sleep(1000 * 2 ** (attempt - 1))
+    }
+  }
+  try {
+    if (status === 'pending') status = await client.waitForPayment(props.sessionId, digest)
+  } catch (e) {
+    problem.value = `${message(e)} Your payment is saved in this tab: choose Check again, or reload the page later.`
+    return
+  }
+  if (status === 'confirmed') {
+    forget()
+    step.value = 'paid'
+    announcement.value = 'Payment confirmed.'
+    emit('paid', { digest, quote: q })
+  } else if (status === 'rejected') {
+    forget()
+    step.value = 'rejected'
+    emit('failed', 'rejected')
+  } else if (status === 'unapplied') {
+    forget()
+    step.value = 'unapplied'
+    announcement.value = 'Payment received, but this checkout was already paid or closed.'
+    emit('failed', 'unapplied')
+  } else {
+    problem.value = 'The network has not confirmed the payment yet. It is checked again on its own; you can close this page.'
+  }
+}
+
+async function checkAgain() {
+  if (following.value) await follow(following.value.quote, following.value.digest)
 }
 
 watch(method, () => {
@@ -245,6 +312,9 @@ onBeforeUnmount(() => clearInterval(timer))
     </template>
 
     <UiNotice v-if="problem" type="error" :message="problem" />
+    <p v-if="step === 'confirming' && problem" class="actions">
+      <UiButton @click="checkAgain">Check again</UiButton>
+    </p>
     <p class="visually-hidden" aria-live="polite">{{ announcement }}</p>
   </section>
 </template>
