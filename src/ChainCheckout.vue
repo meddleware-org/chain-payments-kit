@@ -6,6 +6,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { UiButton, UiNotice, UiSegmentedControl } from '@meddleware/ui'
 import { ChainPaymentsError, createSessionClient, loadChain, supported } from '@meddleware/chain-payments-client'
 import type { CheckoutSession, Quote, SessionClient } from '@meddleware/chain-payments-client'
+import type { PlatformFee, SuiObjectReader } from '@meddleware/chain-payments-client/sui'
 
 const props = defineProps<{
   sessionId: string
@@ -13,6 +14,8 @@ const props = defineProps<{
   baseUrl?: string
   /** Signs and executes the chain module's transaction with the buyer's wallet; resolves with the digest. */
   signAndExecute: (tx: unknown) => Promise<{ digest: string }>
+  /** Reads chain objects (the platform fee's terms) before signing: the wallet adapter's Sui client. */
+  suiClient: SuiObjectReader
   /** Injected session client (tests and galleries). */
   client?: SessionClient
   /** Heading level of the checkout's title. */
@@ -32,6 +35,7 @@ const session = ref<CheckoutSession | null>(null)
 const method = ref('')
 const quote = ref<Quote | null>(null)
 const problem = ref('')
+const fee = ref<PlatformFee | null>(null)
 const now = ref(Date.now())
 const announcement = ref('')
 let timer: ReturnType<typeof setInterval> | undefined
@@ -53,6 +57,26 @@ const networkText = computed(() => {
   if (!m) return ''
   return `${Object.hasOwn(CHAIN_NAMES, m.chain) ? CHAIN_NAMES[m.chain] : m.chain} ${m.network}`
 })
+
+/** A smallest-unit amount in whole coins, e.g. 11084426n with 9 decimals → "0.011084426". */
+function coins(v: bigint, decimals: number): string {
+  const s = v.toString().padStart(decimals + 1, '0')
+  const whole = s.slice(0, s.length - decimals)
+  const frac = s.slice(s.length - decimals).replace(/0+$/, '')
+  return frac ? `${whole}.${frac}` : whole
+}
+const feeText = computed(() => {
+  const q = quote.value
+  return q && fee.value ? `${coins(fee.value.fee, q.method.decimals)} ${q.method.symbol}` : ''
+})
+const treasuryText = computed(() => (fee.value ? `${fee.value.treasury.slice(0, 6)}…${fee.value.treasury.slice(-4)}` : ''))
+
+/** The platform fee of a quote, read from the chain (Sui methods). */
+async function readFee(q: Quote): Promise<PlatformFee | null> {
+  if (q.method.chain !== 'sui') return null
+  const { readPlatformFee } = await import('@meddleware/chain-payments-client/sui')
+  return readPlatformFee(props.suiClient, q)
+}
 
 /** "1 minute 59 seconds" for a screen reader. */
 function spoken(total: number): string {
@@ -93,7 +117,9 @@ async function getQuote() {
   step.value = 'quoting'
   problem.value = ''
   try {
-    quote.value = await client.requestQuote(props.sessionId, method.value)
+    const q = await client.requestQuote(props.sessionId, method.value)
+    fee.value = await readFee(q)
+    quote.value = q
     now.value = Date.now()
     step.value = 'ready'
     announcement.value = `Pay exactly ${quote.value.amountText}. This price is held for ${spoken(secondsLeft.value)}.`
@@ -108,6 +134,14 @@ async function pay() {
   if (!q || expired.value) return
   step.value = 'signing'
   problem.value = ''
+  // Read the fee again just before the wallet opens, so what is shown is what the chain says now.
+  try {
+    fee.value = await readFee(q)
+  } catch {
+    problem.value = 'The platform fee could not be read from the network, so nothing was signed. Try again.'
+    step.value = 'ready'
+    return
+  }
   let digest: string
   try {
     const chain = await loadChain(q.method.chain)
@@ -182,6 +216,10 @@ onBeforeUnmount(() => clearInterval(timer))
 
         <div v-if="step === 'ready' || step === 'signing'" class="quote">
           <p class="amount">Pay exactly <strong>{{ quote?.amountText }}</strong></p>
+          <dl v-if="fee" class="split">
+            <dt>Platform fee (included)</dt>
+            <dd>{{ feeText }} to the platform ({{ treasuryText }}); the seller receives the rest.</dd>
+          </dl>
           <p class="muted">Network: {{ networkText }}.</p>
           <p v-if="!expired" class="muted">This price is held for <span class="countdown">{{ countdown }}</span>.</p>
           <p class="muted">Your wallet shows the same amount. Any coin left over is returned to you in the same transaction.</p>
@@ -239,6 +277,17 @@ onBeforeUnmount(() => clearInterval(timer))
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--surface);
+}
+
+.split {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: var(--space-xs) var(--space-md);
+  margin: 0;
+}
+
+.split dd {
+  margin: 0;
 }
 
 .quote p {

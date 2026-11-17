@@ -9,8 +9,8 @@ import { ChainCheckout } from '../src'
 const SESSION = '0123456789abcdef0123456789abcdef'
 const sui = {
   id: 'sui-testnet:SUI', chain: 'sui', network: 'testnet', symbol: 'SUI', decimals: 9, coinType: '0x2::sui::SUI',
-  packageId: '0x5f67109c6b436fc0c0415d7f3e63ca10d374d8c4bb5e3b1f087cabb1c785bc14',
-  merchantObject: '0x30b6d544652d35d4a481fa7e45adf8e514b9ae1596377e837b6fdf36d967dae8',
+  packageId: '0x610cf31fa9455893f1d0d139e6aa6ca4559a9f2acf07391c0d47c4e86a9c6af2',
+  merchantObject: '0xd92a3ce208124219667d5b17a939617cc4dc816c093b91fd80f1f164e635d5e5',
 }
 const usdc = { ...sui, id: 'sui-testnet:USDC', symbol: 'USDC', decimals: 6, coinType: '0xa1ec::usdc::USDC' }
 const session = (status: CheckoutSession['status'] = 'open'): CheckoutSession => ({
@@ -29,13 +29,25 @@ const fake = (status: CheckoutSession['status'] = 'open'): SessionClient => ({
   waitForPayment: async () => 'confirmed',
 })
 const wallet = async () => ({ digest: 'AkJZej7Bto2iCcX26Ab4CTQaBaVzKKUzN3ywTfwBmLZw' })
+// The testnet PlatformConfig as the chain returns it (0.2 % to the treasury).
+const suiClient = {
+  core: {
+    getObject: async () => ({
+      object: {
+        objectId: '0x7e3b9a5c5346850d0703df88fcab044644c3e92b84a65e59b4661ef0e7b96106',
+        type: '0x610cf31fa9455893f1d0d139e6aa6ca4559a9f2acf07391c0d47c4e86a9c6af2::chain_payments::PlatformConfig',
+        json: { fee_bps: '20', treasury: '0xa991ae11b0785718cd3ad1c616e804a4c083f431b3144bb845bdec651164864a' },
+      },
+    }),
+  },
+}
 const state = computed(() => new URLSearchParams(location.search).get('state'))
 </script>
 
 <template>
   <AppToolShell title="Chain Payments kit" slug="chain-payments-kit" :docs-url="false" :dev-url="false" default-mode="light">
-    <ChainCheckout v-if="!state || state === 'open'" :session-id="SESSION" :client="fake()" :sign-and-execute="wallet" />
-    <ChainCheckout v-if="state === 'paid'" :session-id="SESSION" :client="fake('paid')" :sign-and-execute="wallet" />
-    <ChainCheckout v-if="state === 'closed'" :session-id="SESSION" :client="fake('expired')" :sign-and-execute="wallet" />
+    <ChainCheckout v-if="!state || state === 'open'" :session-id="SESSION" :client="fake()" :sui-client="suiClient" :sign-and-execute="wallet" />
+    <ChainCheckout v-if="state === 'paid'" :session-id="SESSION" :client="fake('paid')" :sui-client="suiClient" :sign-and-execute="wallet" />
+    <ChainCheckout v-if="state === 'closed'" :session-id="SESSION" :client="fake('expired')" :sui-client="suiClient" :sign-and-execute="wallet" />
   </AppToolShell>
 </template>
