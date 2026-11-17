@@ -42,6 +42,7 @@ describe('ChainCheckout', () => {
     await w.get('button').trigger('click')
     await flushPromises()
     expect(w.text()).toContain('Pay exactly 5.542213191 SUI')
+    expect(w.text()).toContain('Network: Sui testnet.')
     expect(w.text()).toContain('returned to you in the same transaction')
     await w.get('button').trigger('click')
     await flushPromises()

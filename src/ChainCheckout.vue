@@ -46,6 +46,13 @@ const secondsLeft = computed(() => (quote.value ? Math.max(0, Math.floor((Number
 const countdown = computed(() => `${Math.floor(secondsLeft.value / 60)}:${String(secondsLeft.value % 60).padStart(2, '0')}`)
 const expired = computed(() => step.value === 'ready' && secondsLeft.value === 0)
 const headingTag = computed(() => `h${props.level ?? 2}`)
+/** "Sui testnet": the network the wallet must be on, shown before it is asked to sign. */
+const CHAIN_NAMES: Record<string, string> = { sui: 'Sui' }
+const networkText = computed(() => {
+  const m = quote.value?.method
+  if (!m) return ''
+  return `${Object.hasOwn(CHAIN_NAMES, m.chain) ? CHAIN_NAMES[m.chain] : m.chain} ${m.network}`
+})
 
 /** "1 minute 59 seconds" for a screen reader. */
 function spoken(total: number): string {
@@ -171,6 +178,7 @@ onBeforeUnmount(() => clearInterval(timer))
 
         <div v-if="step === 'ready' || step === 'signing'" class="quote">
           <p class="amount">Pay exactly <strong>{{ quote?.amountText }}</strong></p>
+          <p class="muted">Network: {{ networkText }}.</p>
           <p v-if="!expired" class="muted">This price is held for <span class="countdown">{{ countdown }}</span>.</p>
           <p class="muted">Your wallet shows the same amount. Any coin left over is returned to you in the same transaction.</p>
         </div>
