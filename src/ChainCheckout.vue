@@ -280,14 +280,16 @@ onBeforeUnmount(() => clearInterval(timer))
 }
 
 .split {
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  gap: var(--space-xs) var(--space-md);
   margin: 0;
+}
+
+.split dt {
+  font-weight: 600;
 }
 
 .split dd {
   margin: 0;
+  overflow-wrap: anywhere;
 }
 
 .quote p {
