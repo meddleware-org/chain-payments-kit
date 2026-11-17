@@ -24,7 +24,7 @@ const emit = defineEmits<{
   failed: [reason: string]
 }>()
 
-type Step = 'loading' | 'choose' | 'quoting' | 'ready' | 'signing' | 'confirming' | 'paid' | 'rejected' | 'closed' | 'error'
+type Step = 'loading' | 'choose' | 'quoting' | 'ready' | 'signing' | 'confirming' | 'paid' | 'rejected' | 'unapplied' | 'closed' | 'error'
 
 const client = props.client ?? createSessionClient({ baseUrl: props.baseUrl ?? '' })
 const step = ref<Step>('loading')
@@ -129,6 +129,10 @@ async function pay() {
     } else if (status === 'rejected') {
       step.value = 'rejected'
       emit('failed', 'rejected')
+    } else if (status === 'unapplied') {
+      step.value = 'unapplied'
+      announcement.value = 'Payment received, but this checkout was already paid or closed.'
+      emit('failed', 'unapplied')
     } else {
       problem.value = 'The network has not confirmed the payment yet. It will be checked again; you can close this page.'
     }
@@ -193,6 +197,11 @@ onBeforeUnmount(() => clearInterval(timer))
 
       <UiNotice v-if="step === 'confirming'" type="info" message="Payment sent. Waiting for the network to confirm it…" />
       <UiNotice v-if="step === 'paid'" type="ok" message="Paid. Thank you." />
+      <UiNotice
+        v-if="step === 'unapplied'"
+        type="warning"
+        message="Your payment arrived, but this checkout had already been paid or closed, so it bought nothing here. The seller has been told and can credit it or refund it to the address that paid; contact them if you have not heard back."
+      />
       <UiNotice v-if="step === 'rejected'" type="error" message="That transaction did not pay this checkout. Nothing was charged by this page; check your wallet's history." />
       <UiNotice v-if="step === 'closed'" type="warning" message="This checkout is closed. Start a new one to pay." />
     </template>

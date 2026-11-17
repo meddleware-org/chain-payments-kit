@@ -88,4 +88,17 @@ describe('ChainCheckout', () => {
     await rejected.get('button').trigger('click')
     await vi.waitFor(() => expect(rejected.text()).toContain('did not pay this checkout'), { timeout: 10_000 })
   })
+
+  it('says so when a payment arrives for a checkout already paid or closed', async () => {
+    const w = mount(ChainCheckout, {
+      props: { sessionId: SESSION, client: client({ submitPayment: vi.fn(async () => 'unapplied' as const) }), signAndExecute: vi.fn(async () => ({ digest: 'D3' })) },
+    })
+    await flushPromises()
+    await w.get('button').trigger('click')
+    await flushPromises()
+    await w.get('button').trigger('click')
+    await vi.waitFor(() => expect(w.text()).toContain('already been paid or closed'), { timeout: 10_000 })
+    expect(w.emitted('failed')?.[0]).toEqual(['unapplied'])
+    expect(w.emitted('paid')).toBeUndefined()
+  })
 })
