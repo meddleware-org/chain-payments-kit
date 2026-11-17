@@ -7,11 +7,11 @@ from the buyer's own wallet, followed to on-chain confirmation.
 <script setup lang="ts">
 import { ChainCheckout } from '@meddleware/chain-payments-kit'
 import { createToolWallet } from '@meddleware/wallet-adapter'
-const { signAndExecute } = createToolWallet()
+const { signAndExecute, getSuiClient } = createToolWallet()
 </script>
 
 <template>
-  <ChainCheckout :session-id="id" base-url="https://chain-payments.example.org" :sign-and-execute="signAndExecute" @paid="done" />
+  <ChainCheckout :session-id="id" base-url="https://chain-payments.example.org" :sui-client="getSuiClient()" :sign-and-execute="signAndExecute" @paid="done" />
 </template>
 ```
 
