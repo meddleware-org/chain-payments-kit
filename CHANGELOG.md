@@ -1,5 +1,10 @@
 # Changelog
 
+## [Unreleased]
+
+- CI: `HOME=/root` is set on the browser-test command only, not the whole job, so the runner no longer warns that it cannot read
+  `/root/.docker/config.json`.
+
 ## 0.0.3 — 2026-11-19
 
 - `network` prop: the network the host app's wallet is on. When the chosen coin's network is another, the checkout says
