@@ -156,6 +156,24 @@ describe('ChainCheckout', () => {
     expect(sessionStorage.getItem(`chain-payments:pending:${SESSION}`)).toBeNull()
   })
 
+  it('on another network than the app, says so and never asks the wallet', async () => {
+    const signAndExecute = vi.fn(async () => ({ digest: 'never' }))
+    const w = mount(ChainCheckout, { props: { sessionId: SESSION, client: client(), suiClient, signAndExecute, network: 'mainnet' } })
+    await flushPromises()
+    expect(w.text()).toContain('This checkout is for Sui testnet; this app is on Sui mainnet.')
+    await w.findAll('button').find((b) => b.text() === 'Get the exact price')!.trigger('click')
+    await flushPromises()
+    const pay = w.findAll('button').find((b) => b.text() === 'Pay with your wallet')!
+    expect(pay.attributes('disabled')).toBeDefined()
+    await pay.trigger('click')
+    await flushPromises()
+    expect(signAndExecute).not.toHaveBeenCalled()
+    // The same network: no notice, and paying works as before.
+    const ok = mount(ChainCheckout, { props: { sessionId: SESSION, client: client(), suiClient, signAndExecute, network: 'testnet' } })
+    await flushPromises()
+    expect(ok.text()).not.toContain('This checkout is for')
+  })
+
   it('offers Check again while a payment is still unconfirmed', async () => {
     sessionStorage.clear()
     const c = client({ submitPayment: vi.fn(async () => 'pending' as const), waitForPayment: vi.fn(async () => 'pending' as const) })

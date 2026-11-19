@@ -68,5 +68,6 @@ const stagedWallet = computed(() => (staged.value === 'signing' ? () => never<{ 
     <ChainCheckout v-if="state === 'paid'" :session-id="SESSION" :client="fake('paid')" :sui-client="suiClient" :sign-and-execute="wallet" />
     <ChainCheckout v-if="state === 'closed'" :session-id="SESSION" :client="fake('expired')" :sui-client="suiClient" :sign-and-execute="wallet" />
     <ChainCheckout v-if="staged" :session-id="SESSION" :client="stagedClient" :sui-client="suiClient" :sign-and-execute="stagedWallet" />
+    <ChainCheckout v-if="state === 'wrong-network'" :session-id="SESSION" :client="fake()" :sui-client="suiClient" :sign-and-execute="wallet" network="mainnet" />
   </AppToolShell>
 </template>

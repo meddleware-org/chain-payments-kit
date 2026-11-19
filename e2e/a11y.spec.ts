@@ -36,6 +36,11 @@ defineA11ySuite(
       await page.getByRole('button', { name: 'Get the exact price' }).click()
       await page.locator('[aria-busy="true"]').first().waitFor()
     },
+    'wrong network': async (page) => {
+      await page.goto('/?state=wrong-network')
+      await page.getByRole('button', { name: 'Get the exact price' }).click()
+      await page.getByText('This checkout is for Sui testnet; this app is on Sui mainnet.').waitFor()
+    },
     expired: async (page) => {
       await page.goto('/?state=expired')
       await page.getByRole('button', { name: 'Get the exact price' }).click()

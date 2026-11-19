@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.0.3 — 2026-11-19
+
+- `network` prop: the network the host app's wallet is on. When the chosen coin's network is another, the checkout says
+  "This checkout is for Sui testnet; this app is on Sui mainnet." and **Pay** stays disabled, so the wallet is never asked
+  (FU-0144). The gallery has the state and the accessibility sweep covers it.
+
 ## 0.0.2 — 2026-11-17
 
 - A signed payment is kept in `sessionStorage` (this tab, the quote and the digest only) until the service answers. A

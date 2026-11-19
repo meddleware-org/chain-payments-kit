@@ -20,6 +20,11 @@ const props = defineProps<{
   client?: SessionClient
   /** Heading level of the checkout's title. */
   level?: 2 | 3 | 4
+  /**
+   * The network the host app's wallet and chain reads are on (for example `testnet`). When the chosen coin's network is
+   * another, the checkout says so and never asks the wallet: a payment there would fail, or be on the wrong chain.
+   */
+  network?: string
 }>()
 
 const emit = defineEmits<{
@@ -58,6 +63,15 @@ const networkText = computed(() => {
   const m = quote.value?.method
   if (!m) return ''
   return `${Object.hasOwn(CHAIN_NAMES, m.chain) ? CHAIN_NAMES[m.chain] : m.chain} ${m.network}`
+})
+/** The chosen coin's method (the quote's once there is one). */
+const chosen = computed(() => quote.value?.method ?? usable.value.find((m) => m.id === method.value) ?? null)
+/** "This checkout is for Sui testnet; this app is on Sui mainnet.", or '' when the networks agree (or none was given). */
+const wrongNetwork = computed(() => {
+  const m = chosen.value
+  if (!props.network || !m || m.network === props.network) return ''
+  const chain = Object.hasOwn(CHAIN_NAMES, m.chain) ? CHAIN_NAMES[m.chain] : m.chain
+  return `This checkout is for ${chain} ${m.network}; this app is on ${chain} ${props.network}.`
 })
 
 /** A smallest-unit amount in whole coins, e.g. 11084426n with 9 decimals → "0.011084426". */
@@ -139,7 +153,7 @@ async function getQuote() {
 
 async function pay() {
   const q = quote.value
-  if (!q || expired.value) return
+  if (!q || expired.value || wrongNetwork.value) return
   step.value = 'signing'
   problem.value = ''
   // Read the fee again just before the wallet opens, so what is shown is what the chain says now.
@@ -292,11 +306,12 @@ onBeforeUnmount(() => clearInterval(timer))
           <p class="muted">Your wallet shows the same amount. Any coin left over is returned to you in the same transaction.</p>
         </div>
 
+        <UiNotice v-if="wrongNetwork" type="warning" :message="`${wrongNetwork} Nothing can be paid here; ask the seller.`" />
         <p class="actions">
           <UiButton v-if="step === 'choose' || step === 'quoting' || expired" :busy="step === 'quoting'" @click="getQuote">
             {{ expired ? 'Get a new price' : 'Get the exact price' }}
           </UiButton>
-          <UiButton v-else :busy="step === 'signing'" @click="pay">Pay with your wallet</UiButton>
+          <UiButton v-else :busy="step === 'signing'" :disabled="!!wrongNetwork" @click="pay">Pay with your wallet</UiButton>
         </p>
       </template>
 
