@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 
+- CI: the release workflow's `verify` job calls `node-ci.yml` (as `ui` does) instead of repeating every check in one job with `playwright install --with-deps`; the browser tests now run as one job per browser in Playwright's image (D129/D138). `node-ci.yml` gained the build and packed-files checks the old verify job ran, so they run on every push.
 - CI: `HOME=/root` is set on the browser-test command only, not the whole job, so the runner no longer warns that it cannot read
   `/root/.docker/config.json`.
 
