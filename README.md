@@ -17,3 +17,7 @@ const { signAndExecute, getSuiClient } = createToolWallet()
 
 The merchant's backend creates the session (merchant API); the component needs only its id. Peer dependencies:
 `@meddleware/chain-payments-client`, `@meddleware/ui`, `@meddleware/design-tokens`, `vue`. Licence: [0BSD](LICENSE).
+
+## Open standards
+
+What this project speaks, what is planned and where you can extend it: [docs/INTEROP.md](docs/INTEROP.md).

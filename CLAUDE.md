@@ -23,3 +23,7 @@ npm run build:gallery && npm run test:e2e        # E2E_BROWSERS=all for five bro
 ```
 
 Commit messages: one short line, no body, no trailer.
+
+## Interoperability
+
+- [docs/INTEROP.md](docs/INTEROP.md): the standards this project speaks, what is planned, where to extend it, and what proves each claim.
