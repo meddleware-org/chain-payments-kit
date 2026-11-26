@@ -1,5 +1,9 @@
+# Files this repository never tracks: dependencies, the built gallery, test output and logs.
+
 node_modules/
+# The built component gallery (npm run build:gallery)
 gallery-dist/
+# Playwright's output
 test-results/
 playwright-report/
 *.log
