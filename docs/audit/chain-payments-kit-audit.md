@@ -292,20 +292,20 @@ All styles are scoped. The component renders no header, footer or wallet bar (VU
 Scope: every tracked file read against the workspace's `docs/operations/DOCUMENTATION_STANDARD.md` and annotated (Part B Phase 1, the twentieth repository, the second of the kits); the DOCS, RFC, IOP and PRIV
 lenses applied for the first time. Before and after editing: `npm ci`, `vue-tsc`, the three linters, the 9 tests, the gallery build, `mw-audit-gate` (0 high or critical advisories), `npm pack --dry-run` (8 files)
 and the Chromium run of the real-browser sweep (195 passed). The diff is comment-only: the TypeScript compiles to identical output with comments removed, the Vue single-file component compiles to the same render
-function, and the styles, `tsconfig.json` and `.gitignore` parse alike; the YAML parses to identical values apart from the audit-gate command in `node-ci.yml` (F14). No defect was found in the code.
+function, and the styles, `tsconfig.json` and `.gitignore` parse alike; the YAML parses to identical values apart from the audit-gate command in `node-ci.yml` and the added `engines` field (F14). No defect was found in the code.
 
 ### F14 — Documentation drift found by the documentation pass
 **Severity:** Low   **Disposition:** RESOLVED (2026-11-26, unreleased)
 **Where:** this audit (deployment status, F2–F5, counts, Sections C and D), `README.md`, `CLAUDE.md`, `.github/workflows/node-ci.yml`, `.github/audit-gate.mjs`, `package.json` (no `engines`).
 **Issue:** (1) the audit was still the 2026-11-17 scaffold: unpublished 0.0.1, F2, F4 and F5 DEFERRED, three tests, a four-state sweep, although 0.0.2 and 0.0.3 are published and resolve them (updates above);
 (2) the README had no props table, no mention of the kept `sessionStorage` record and no Development section, there was no `CONTRIBUTING.md`, and CLAUDE.md had no Gotchas or Related; (3) the CI job
-`node24-compat` is named "engines >=24", but `package.json` declares no `engines` field (the job still runs the tests on Node 24; the name and a field that says so should agree: noted, not changed);
+`node24-compat` is named "engines >=24", but `package.json` declared no `engines` field (fixed: the field is added, as every other package of the fleet declares it, so the job's name and the manifest agree);
 (4) `.github/audit-gate.mjs` was an un-annotated copy of the gate that `@meddleware/frontend-config` ships as `mw-audit-gate` (one of the nine copies of FU-0196); (5) the component's 10 declarations, the tests and
 most configuration files had no doc comment or header.
 **Impact:** none on the shipped code. A reader could not tell what is published, which findings are open, or what the props are.
 **Remediation / evidence:** the facts are checked against npm, the code, the tests, the sweep and the pull requests; the audit's dispositions are updated with dated evidence; the documents are written; every
-declaration is documented; `node-ci.yml` runs `npx --no-install mw-audit-gate` and the copy is removed (the result is the same). The `engines` question is left to the maintainer's next release (add
-`"engines": { "node": ">=24" }` or rename the job); no behaviour changes in this pass.
+declaration is documented; `node-ci.yml` runs `npx --no-install mw-audit-gate` and the copy is removed (the result is the same). The only non-comment changes are the audit-gate command and the added `engines` field
+(`"node": ">=24"`, metadata that npm reads at install; the code is unchanged).
 
 ## Section A — Invariant verification matrix
 

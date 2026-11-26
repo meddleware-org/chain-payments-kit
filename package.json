@@ -24,6 +24,9 @@
     "CHANGELOG.md",
     "SECURITY.md"
   ],
+  "engines": {
+    "node": ">=24"
+  },
   "publishConfig": {
     "access": "public"
   },

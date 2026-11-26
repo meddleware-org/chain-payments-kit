@@ -31,7 +31,7 @@ Commit messages: one short line, no body, no trailer.
 
 - **No HTML comment before the template's root element.** A comment next to the root makes the component a fragment in a development build, so `class` and other attributes passed by the parent no longer fall through (only there: production strips comments). Put such notes in the `<script>` header; comments inside the root element are fine.
 - **A signed payment is kept in `sessionStorage`** (this tab, the quote and the digest only) until the service answers; the storage ledger (legal register H2) lists it as strictly necessary for what the buyer asked. Do not keep anything else there.
-- **The kit has no `engines` field** although the CI job `node24-compat` is named for one: the job runs the tests on Node 24; no field says the package needs it (audit F14).
+- **`engines` is `node >=24`**, like the other packages, and the CI job `node24-compat` proves it by running the tests on Node 24 (added 2026-11-26, audit F14).
 - **The gallery is not published** (`files` ships `src` only); its fake session client and wallet are in `gallery/CheckoutGallery.vue`, and each state has an entry in `e2e/a11y.spec.ts`.
 
 ## Related

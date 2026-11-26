@@ -135,7 +135,7 @@ jobs:
         env:
           E2E_BROWSERS: all
 
-  # The tests on Node 24, the oldest Node the fleet supports. (The job's name says `engines >=24`, but this package declares no `engines` field: the audit records it, F14.)
+  # The package declares `engines: node >=24`; this proves the claim by running the tests on that version.
   node24-compat:
     name: Node 24 compatibility (engines >=24)
     runs-on: ubuntu-latest
