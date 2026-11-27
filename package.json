@@ -1,6 +1,6 @@
 {
   "name": "@meddleware/chain-payments-kit",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Vue checkout for Chain Payments: shows the exact price, builds the payment through the chain modules, follows it to confirmation.",
   "license": "0BSD",
   "repository": {
@@ -45,16 +45,16 @@
     "shots": "SHOTS=1 playwright test"
   },
   "peerDependencies": {
-    "@meddleware/chain-payments-client": "^0.0.1",
-    "@meddleware/design-tokens": "^0.1.13",
-    "@meddleware/ui": "^0.1.43",
+    "@meddleware/chain-payments-client": "^0.0.2",
+    "@meddleware/design-tokens": "^0.1.14",
+    "@meddleware/ui": "^0.1.47",
     "vue": "^3.5.0"
   },
   "devDependencies": {
-    "@meddleware/chain-payments-client": "0.0.1",
-    "@meddleware/design-tokens": "^0.1.13",
-    "@meddleware/frontend-config": "^0.0.14",
-    "@meddleware/ui": "^0.1.43",
+    "@meddleware/chain-payments-client": "0.0.2",
+    "@meddleware/design-tokens": "^0.1.14",
+    "@meddleware/frontend-config": "^0.0.17",
+    "@meddleware/ui": "^0.1.47",
     "@mysten/sui": "^2.39.1",
     "@playwright/test": "~1.64.1",
     "@types/node": "~26.6.5",

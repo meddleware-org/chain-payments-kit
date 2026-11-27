@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.0.4] - 2026-11-27
+
 - Documentation: every file is annotated line by line and has a header (every declaration has a doc comment, the tests say what they prove); `CONTRIBUTING.md` added; README Props and events and Development sections; CLAUDE.md Gotchas and Related.
 - `package.json` declares `engines: { node: ">=24" }` (the CI job `node24-compat` already tested Node 24 and was named for that field; the other packages declare it).
 - CI: the audit step runs `npx --no-install mw-audit-gate` from `@meddleware/frontend-config` instead of a copy of the gate in `.github/` (FU-0196); same gate, same allowlist.
