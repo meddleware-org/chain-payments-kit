@@ -34,6 +34,10 @@ Commit messages: one short line, no body, no trailer.
 - **`engines` is `node >=24`**, like the other packages, and the CI job `node24-compat` proves it by running the tests on Node 24 (added 2026-11-26, audit F14).
 - **The gallery is not published** (`files` ships `src` only); its fake session client and wallet are in `gallery/CheckoutGallery.vue`, and each state has an entry in `e2e/a11y.spec.ts`.
 
+## Documentation rules (workspace documentation standard, D144)
+
+Every file has a header and every declaration a TSDoc comment (private declarations included); comments say why. In a Vue single-file component the header is a `//` comment just inside `<script>` (never an HTML comment before the root element in `<template>`), template notes are `<!-- -->` inside the root, and style notes are `/* */`. `node scripts/check-docs.mjs --report chain-payments-kit` (in the workspace repository) is the gate. See [CONTRIBUTING.md](CONTRIBUTING.md).
+
 ## Related
 
 - The audit: [`docs/audit/chain-payments-kit-audit.md`](docs/audit/chain-payments-kit-audit.md); how to propose a change: [`CONTRIBUTING.md`](CONTRIBUTING.md).
